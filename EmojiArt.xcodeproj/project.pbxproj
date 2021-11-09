@@ -11,6 +11,8 @@
 		A4730B23273A82F10011F51F /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4730B22273A82F10011F51F /* ContentView.swift */; };
 		A4730B25273A82F30011F51F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A4730B24273A82F30011F51F /* Assets.xcassets */; };
 		A4730B28273A82F30011F51F /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A4730B27273A82F30011F51F /* Preview Assets.xcassets */; };
+		A4730B34273A83BC0011F51F /* EmojiArtModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4730B33273A83BC0011F51F /* EmojiArtModel.swift */; };
+		A4730B36273A871E0011F51F /* EmojiArt.Background.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4730B35273A871E0011F51F /* EmojiArt.Background.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -19,6 +21,8 @@
 		A4730B22273A82F10011F51F /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		A4730B24273A82F30011F51F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A4730B27273A82F30011F51F /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
+		A4730B33273A83BC0011F51F /* EmojiArtModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmojiArtModel.swift; sourceTree = "<group>"; };
+		A4730B35273A871E0011F51F /* EmojiArt.Background.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmojiArt.Background.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -51,6 +55,10 @@
 		A4730B1F273A82F10011F51F /* EmojiArt */ = {
 			isa = PBXGroup;
 			children = (
+				A4730B32273A83A50011F51F /* Views */,
+				A4730B31273A839A0011F51F /* ViewModels */,
+				A4730B2F273A83820011F51F /* Extensions */,
+				A4730B2E273A837B0011F51F /* Models */,
 				A4730B20273A82F10011F51F /* EmojiArtApp.swift */,
 				A4730B22273A82F10011F51F /* ContentView.swift */,
 				A4730B24273A82F30011F51F /* Assets.xcassets */,
@@ -65,6 +73,36 @@
 				A4730B27273A82F30011F51F /* Preview Assets.xcassets */,
 			);
 			path = "Preview Content";
+			sourceTree = "<group>";
+		};
+		A4730B2E273A837B0011F51F /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				A4730B33273A83BC0011F51F /* EmojiArtModel.swift */,
+				A4730B35273A871E0011F51F /* EmojiArt.Background.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		A4730B2F273A83820011F51F /* Extensions */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Extensions;
+			sourceTree = "<group>";
+		};
+		A4730B31273A839A0011F51F /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		A4730B32273A83A50011F51F /* Views */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Views;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -138,7 +176,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				A4730B23273A82F10011F51F /* ContentView.swift in Sources */,
+				A4730B36273A871E0011F51F /* EmojiArt.Background.swift in Sources */,
 				A4730B21273A82F10011F51F /* EmojiArtApp.swift in Sources */,
+				A4730B34273A83BC0011F51F /* EmojiArtModel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
