@@ -11,6 +11,9 @@ struct EmojiArtModel {
     var background: Background = .blank
     var emojis = [Emoji]()
     
+    init() {}
+    
+    // MARK: - Emojis
     struct Emoji: Identifiable {
         let text: String
         var x: Int
@@ -26,12 +29,10 @@ struct EmojiArtModel {
             self.id = id
         }
     }
-    
-    init() {}
-    
+        
     private var uniqueEmojiId = 0
     
-    mutating func addEmoji(text: String, at location: (x: Int, y: Int), size: Int, id: Int) {
+    mutating func addEmoji(text: String, at location: (x: Int, y: Int), size: Int) {
         uniqueEmojiId += 1
         emojis.append(Emoji(text: text, x: location.x, y: location.y, size: size, id: uniqueEmojiId))
     }
