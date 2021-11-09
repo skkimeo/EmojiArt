@@ -13,7 +13,7 @@ struct ScrollingEmojisView: View {
     var body: some View {
         ScrollView(.horizontal) {
             HStack {
-                ForEach(emojis.map {String($0)}, id: \.self) { emoji in
+                ForEach(emojis.map { String($0) }, id: \.self) { emoji in
                     Text(emoji)
                 }
             }
