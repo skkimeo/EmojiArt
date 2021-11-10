@@ -10,16 +10,16 @@ import SwiftUI
 struct EmojiArtDocumentView: View {
     @ObservedObject var document: EmojiArtDocument
     
-    let defaultEmojiFontSize: CGFloat = 40
+    private let defaultEmojiFontSize: CGFloat = 40
     
     var body: some View {
         VStack(spacing: 0) {
-            background
-            pallete
+            documentBody
+            palette
         }
     }
     
-    var background: some View {
+    var documentBody: some View {
         GeometryReader { geometry in
             ZStack {
                 Color.yellow
@@ -29,13 +29,24 @@ struct EmojiArtDocumentView: View {
                         .position(position(for: emoji, in: geometry))
                 }
             }
+            .onDrop(of: [.plainText], isTargeted: nil) { providers, location in
+                drop(providers: providers, at: location, in: geometry)
+            }
         }
     }
     
-    var pallete: some View {
-        ScrollingEmojisView(emojis: testEmojis)
-            .font(.system(size: defaultEmojiFontSize))
+    // MARK: - Drag and Drop
+    
+    private func drop(providers: [NSItemProvider], at location: CGPoint, in geometry: GeometryProxy) -> Bool {
+        
+        return providers.loadObjects(ofType: String.self) { string in
+            if let emoji = string.first, emoji.isEmoji {
+                document.addEmoji(String(emoji), at: convertToEmojiCoordinates(location, in: geometry), size: defaultEmojiFontSize)
+            }
+        }
     }
+    
+    // MARK: - Positioning/Sizing Emoji
     
     private func fontSize(for emoji: EmojiArtModel.Emoji) -> CGFloat {
         CGFloat(emoji.size)
@@ -45,6 +56,15 @@ struct EmojiArtDocumentView: View {
         convertFromEmojiCoordinates((emoji.x, emoji.y), in: geometry)
     }
     
+    private func convertToEmojiCoordinates(_ location: CGPoint, in geometry: GeometryProxy) -> (Int, Int) {
+        let center = geometry.frame(in: .local).center
+        let location = (
+            x: location.x - center.x,
+            y: location.y - center.y
+        )
+        return (Int(location.x), Int(location.y))
+    }
+    
     private func convertFromEmojiCoordinates(_ location: (x: Int, y: Int), in geometry: GeometryProxy) -> CGPoint {
         let center = geometry.frame(in: .local).center
         
@@ -52,6 +72,13 @@ struct EmojiArtDocumentView: View {
             x: center.x + CGFloat(location.x),
             y: center.y + CGFloat(location.y)
         )
+    }
+    
+    // MARK: - palette
+    
+    var palette: some View {
+        ScrollingEmojisView(emojis: testEmojis)
+            .font(.system(size: defaultEmojiFontSize))
     }
     
     let testEmojis = "🥰🐷☀️💚🥝🍓🍕🧁🏀🎹✈️🏖🔮🎈🎁🚙🏋️‍♀️☃️🌈🎃💄🤷‍♀️🌸🍀🍄⭐️🌳🎂🎷🎨🏠⛰💡📀💎"
