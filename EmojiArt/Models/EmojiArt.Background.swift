@@ -13,7 +13,7 @@ extension EmojiArtModel {
         case url(URL)
         case imageData(Data)
         
-        var Url: URL? {
+        var url: URL? {
             switch self {
             case .url(let url): return url
             default: return nil
