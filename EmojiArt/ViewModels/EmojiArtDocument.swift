@@ -8,7 +8,14 @@
 import SwiftUI
 
 class EmojiArtDocument: ObservableObject {
-    @Published private(set) var emojiArt: EmojiArtModel
+    @Published private(set) var emojiArt: EmojiArtModel {
+        didSet {
+            if emojiArt.background != oldValue.background {
+                fetchBackgroundImageDataIfNecessary()
+            }
+        }
+    }
+    
     
     init() {
         emojiArt = EmojiArtModel()
@@ -18,6 +25,34 @@ class EmojiArtDocument: ObservableObject {
     
     var background: EmojiArtModel.Background { emojiArt.background }
     var emojis: [EmojiArtModel.Emoji] { emojiArt.emojis }
+    
+    
+    // MARK: - Background
+    
+    @Published private(set) var backgroundImage: UIImage?
+    
+    private func fetchBackgroundImageDataIfNecessary() {
+        backgroundImage = nil
+        switch background {
+        case .blank:
+            break
+        case .url(let url):
+            DispatchQueue.global(qos: .userInitiated).async {
+                let imageData = try? Data(contentsOf: url)
+                
+                DispatchQueue.main.async { [weak self] in
+                    if imageData != nil {
+                        self?.backgroundImage = UIImage(data: imageData!)
+                    }
+                }
+            }
+        case .imageData(let data):
+            backgroundImage = UIImage(data: data)
+        }
+    }
+    
+    
+    
     
     // MARK: - Intent(s)
     
