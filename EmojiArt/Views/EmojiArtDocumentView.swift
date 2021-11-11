@@ -25,7 +25,10 @@ struct EmojiArtDocumentView: View {
                 Color.white
                     .overlay(
                         OptionalImage(uiImage: document.backgroundImage)
+                            .position(convertFromEmojiCoordinates((0, 0), in: geometry))
+                            .scaleEffect(zoomScale)
                     )
+                    .gesture(doubleTapToZoom(in: geometry.size))
                 if document.backgroundImageFetchingStatus == .fetching {
                     ProgressView()
                         .scaleEffect(2)
@@ -41,8 +44,37 @@ struct EmojiArtDocumentView: View {
             .onDrop(of: [.plainText, .url, .image], isTargeted: nil) { providers, location in
                 drop(providers: providers, at: location, in: geometry)
             }
+//            .gesture(zoomGesture())
         }
     }
+    
+    // MARK: - Zoom
+    
+    @State var zoomScale: CGFloat = 1
+    
+//    private func zoomGesture() -> some Gesture {
+//        doubleTapToZoom()
+//    }
+//
+    private func doubleTapToZoom(in size: CGSize) -> some Gesture {
+        TapGesture(count: 2)
+            .onEnded {
+                withAnimation {
+                    zoomToFit(image: document.backgroundImage, in: size)
+                }
+            }
+    }
+    
+    private func zoomToFit(image: UIImage?, in size: CGSize) {
+        if let image = image, image.size.height > 0, image.size.width > 0,
+            size.width > 0, size.height > 0  {
+            let hZoom = size.width / image.size.width
+            let vZoom = size.height / image.size.height
+            
+            zoomScale = min(hZoom, vZoom)
+        }
+    }
+    
     
     // MARK: - Drag and Drop
     
