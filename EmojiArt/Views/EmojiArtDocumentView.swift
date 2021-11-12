@@ -25,17 +25,18 @@ struct EmojiArtDocumentView: View {
                 Color.white
                     .overlay(
                         OptionalImage(uiImage: document.backgroundImage)
-                            .position(convertFromEmojiCoordinates((0, 0), in: geometry))
                             .scaleEffect(zoomScale)
+                            .position(convertFromEmojiCoordinates((0, 0), in: geometry))
                     )
                     .gesture(doubleTapToZoom(in: geometry.size))
-                if document.backgroundImageFetchingStatus == .fetching {
+                if document.backgroundImageFetchStatus == .fetching {
                     ProgressView()
                         .scaleEffect(2)
                 } else {
                     ForEach(document.emojis) { emoji in
                         Text(emoji.text)
                             .font(.system(size: fontSize(for: emoji)))
+                            .scaleEffect(zoomScale)
                             .position(position(for: emoji, in: geometry))
                     }
                 }
@@ -44,18 +45,30 @@ struct EmojiArtDocumentView: View {
             .onDrop(of: [.plainText, .url, .image], isTargeted: nil) { providers, location in
                 drop(providers: providers, at: location, in: geometry)
             }
-//            .gesture(zoomGesture())
+            .gesture(zoomGesture())
         }
     }
     
     // MARK: - Zoom
     
-    @State var zoomScale: CGFloat = 1
+    @State private var steadyStateZoomScale: CGFloat = 1
+    // 멍청아 지금 얘가 적용되는 곳이 없잖아...
+    @GestureState private var gestureZoomScale: CGFloat = 1
     
-//    private func zoomGesture() -> some Gesture {
-//        doubleTapToZoom()
-//    }
-//
+    private var zoomScale: CGFloat {
+        steadyStateZoomScale * gestureZoomScale
+    }
+    
+    private func zoomGesture() -> some Gesture {
+        MagnificationGesture()
+            .updating($gestureZoomScale) { latestGestureScale, gestureZoomScale, _ in
+                gestureZoomScale = latestGestureScale
+            }
+            .onEnded { gestureScaleAtEnd in
+                steadyStateZoomScale *= gestureScaleAtEnd
+            }
+    }
+
     private func doubleTapToZoom(in size: CGSize) -> some Gesture {
         TapGesture(count: 2)
             .onEnded {
@@ -71,7 +84,7 @@ struct EmojiArtDocumentView: View {
             let hZoom = size.width / image.size.width
             let vZoom = size.height / image.size.height
             
-            zoomScale = min(hZoom, vZoom)
+            steadyStateZoomScale = min(hZoom, vZoom)
         }
     }
     
@@ -92,7 +105,10 @@ struct EmojiArtDocumentView: View {
         if !found {
             found = providers.loadObjects(ofType: String.self) { string in
                 if let emoji = string.first, emoji.isEmoji {
-                    document.addEmoji(String(emoji), at: convertToEmojiCoordinates(location, in: geometry), size: defaultEmojiFontSize)
+                    document.addEmoji(
+                        String(emoji),
+                        at: convertToEmojiCoordinates(location, in: geometry),
+                        size: defaultEmojiFontSize / zoomScale)
                 }
             }
         }
@@ -113,8 +129,8 @@ struct EmojiArtDocumentView: View {
     private func convertToEmojiCoordinates(_ location: CGPoint, in geometry: GeometryProxy) -> (Int, Int) {
         let center = geometry.frame(in: .local).center
         let location = (
-            x: location.x - center.x,
-            y: location.y - center.y
+            x: (location.x - center.x) / zoomScale,
+            y: (location.y - center.y) / zoomScale
         )
         return (Int(location.x), Int(location.y))
     }
@@ -123,8 +139,8 @@ struct EmojiArtDocumentView: View {
         let center = geometry.frame(in: .local).center
         
         return CGPoint(
-            x: center.x + CGFloat(location.x),
-            y: center.y + CGFloat(location.y)
+            x: center.x + CGFloat(location.x) * zoomScale,
+            y: center.y + CGFloat(location.y) * zoomScale
         )
     }
     

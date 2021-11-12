@@ -19,8 +19,8 @@ class EmojiArtDocument: ObservableObject {
     
     init() {
         emojiArt = EmojiArtModel()
-        emojiArt.addEmoji("😀", at: (-100, -100), size: 80)
-        emojiArt.addEmoji("☀️", at: (50, 100), size: 40)
+//        emojiArt.addEmoji("😀", at: (-100, -100), size: 80)
+//        emojiArt.addEmoji("☀️", at: (50, 100), size: 40)
     }
     
     var background: EmojiArtModel.Background { emojiArt.background }
@@ -30,9 +30,9 @@ class EmojiArtDocument: ObservableObject {
     // MARK: - Background
     
     @Published private(set) var backgroundImage: UIImage?
-    @Published private(set) var backgroundImageFetchingStatus = BackgroundImageFetchingStatus.idle
+    @Published private(set) var backgroundImageFetchStatus = BackgroundImageFetchStatus.idle
     
-    enum BackgroundImageFetchingStatus {
+    enum BackgroundImageFetchStatus {
         case idle
         case fetching
     }
@@ -43,13 +43,13 @@ class EmojiArtDocument: ObservableObject {
         case .blank:
             break
         case .url(let url):
-            backgroundImageFetchingStatus = .fetching
+            backgroundImageFetchStatus = .fetching
             DispatchQueue.global(qos: .userInitiated).async {
                 let imageData = try? Data(contentsOf: url)
                 
                 DispatchQueue.main.async { [weak self] in
                     if self?.emojiArt.background == EmojiArtModel.Background.url(url) {
-                        self?.backgroundImageFetchingStatus = .idle
+                        self?.backgroundImageFetchStatus = .idle
                         if imageData != nil {
                             self?.backgroundImage = UIImage(data: imageData!)
                         }
@@ -85,7 +85,7 @@ class EmojiArtDocument: ObservableObject {
     
     func scaleEmoji(_ emoji: EmojiArtModel.Emoji, by scale: CGFloat) {
         if let index = emojiArt.emojis.index(matching: emoji) {
-            emojiArt.emojis[index].size = Int(CGFloat(emojiArt.emojis[index].size) * scale.rounded(.toNearestOrAwayFromZero))
+            emojiArt.emojis[index].size = Int((CGFloat(emojiArt.emojis[index].size) * scale).rounded(.toNearestOrAwayFromZero))
         }
     }
 }
