@@ -22,16 +22,14 @@ struct EmojiArtDocumentView: View {
     var documentBody: some View {
         GeometryReader { geometry in
             ZStack {
-                Color.white
-                    .overlay(
+                Color.white.overlay(
                         OptionalImage(uiImage: document.backgroundImage)
                             .scaleEffect(zoomScale)
                             .position(convertFromEmojiCoordinates((0, 0), in: geometry))
-                    )
-                    .gesture(doubleTapToZoom(in: geometry.size))
+                )
+                .gesture(doubleTapToZoom(in: geometry.size))
                 if document.backgroundImageFetchStatus == .fetching {
-                    ProgressView()
-                        .scaleEffect(2)
+                    ProgressView().scaleEffect(2)
                 } else {
                     ForEach(document.emojis) { emoji in
                         Text(emoji.text)
@@ -45,49 +43,9 @@ struct EmojiArtDocumentView: View {
             .onDrop(of: [.plainText, .url, .image], isTargeted: nil) { providers, location in
                 drop(providers: providers, at: location, in: geometry)
             }
-            .gesture(zoomGesture())
+            .gesture(panGesture().simultaneously(with: zoomGesture()))
         }
     }
-    
-    // MARK: - Zoom
-    
-    @State private var steadyStateZoomScale: CGFloat = 1
-    // 멍청아 지금 얘가 적용되는 곳이 없잖아...
-    @GestureState private var gestureZoomScale: CGFloat = 1
-    
-    private var zoomScale: CGFloat {
-        steadyStateZoomScale * gestureZoomScale
-    }
-    
-    private func zoomGesture() -> some Gesture {
-        MagnificationGesture()
-            .updating($gestureZoomScale) { latestGestureScale, gestureZoomScale, _ in
-                gestureZoomScale = latestGestureScale
-            }
-            .onEnded { gestureScaleAtEnd in
-                steadyStateZoomScale *= gestureScaleAtEnd
-            }
-    }
-
-    private func doubleTapToZoom(in size: CGSize) -> some Gesture {
-        TapGesture(count: 2)
-            .onEnded {
-                withAnimation {
-                    zoomToFit(image: document.backgroundImage, in: size)
-                }
-            }
-    }
-    
-    private func zoomToFit(image: UIImage?, in size: CGSize) {
-        if let image = image, image.size.height > 0, image.size.width > 0,
-            size.width > 0, size.height > 0  {
-            let hZoom = size.width / image.size.width
-            let vZoom = size.height / image.size.height
-            
-            steadyStateZoomScale = min(hZoom, vZoom)
-        }
-    }
-    
     
     // MARK: - Drag and Drop
     
@@ -129,8 +87,10 @@ struct EmojiArtDocumentView: View {
     private func convertToEmojiCoordinates(_ location: CGPoint, in geometry: GeometryProxy) -> (Int, Int) {
         let center = geometry.frame(in: .local).center
         let location = (
-            x: (location.x - center.x) / zoomScale,
-            y: (location.y - center.y) / zoomScale
+//            x: (location.x - center.x) / zoomScale - panOffset.width,
+//            y: (location.y - center.y) / zoomScale - panOffset.height
+            x: (location.x - center.x - panOffset.width) / zoomScale,
+            y: (location.y - center.y - panOffset.height) / zoomScale
         )
         return (Int(location.x), Int(location.y))
     }
@@ -139,9 +99,70 @@ struct EmojiArtDocumentView: View {
         let center = geometry.frame(in: .local).center
         
         return CGPoint(
-            x: center.x + CGFloat(location.x) * zoomScale,
-            y: center.y + CGFloat(location.y) * zoomScale
+//            x: center.x + (CGFloat(location.x) + panOffset.width) * zoomScale,
+//            y: center.y + (CGFloat(location.y) + panOffset.height) * zoomScale
+            x: center.x + CGFloat(location.x) * zoomScale + panOffset.width,
+            y: center.y + CGFloat(location.y) * zoomScale + panOffset.height
         )
+    }
+    
+    // MARK: - Zooming
+    
+    @State private var steadyStateZoomScale: CGFloat = 1
+    @GestureState private var gestureZoomScale: CGFloat = 1
+    
+    private var zoomScale: CGFloat {
+        steadyStateZoomScale * gestureZoomScale
+    }
+    
+    private func zoomGesture() -> some Gesture {
+        MagnificationGesture()
+            .updating($gestureZoomScale) { latestGestureScale, gestureZoomScale, _ in
+                gestureZoomScale = latestGestureScale
+            }
+            .onEnded { gestureScaleAtEnd in
+                steadyStateZoomScale *= gestureScaleAtEnd
+            }
+    }
+
+    private func doubleTapToZoom(in size: CGSize) -> some Gesture {
+        TapGesture(count: 2)
+            .onEnded {
+                withAnimation {
+                    zoomToFit(image: document.backgroundImage, in: size)
+                }
+            }
+    }
+    
+    private func zoomToFit(image: UIImage?, in size: CGSize) {
+        if let image = image, image.size.height > 0, image.size.width > 0,
+            size.width > 0, size.height > 0  {
+            let hZoom = size.width / image.size.width
+            let vZoom = size.height / image.size.height
+            
+            steadyStatePanOffset = CGSize.zero
+            steadyStateZoomScale = min(hZoom, vZoom)
+        }
+    }
+    
+    // MARK: - Panning
+    
+    @State private var steadyStatePanOffset: CGSize = CGSize.zero
+    @GestureState private var gesturePanOffset: CGSize = CGSize.zero
+    
+    private var panOffset: CGSize {
+//        (steadyStatePanOffset + gesturePanOffset)  // absolute version
+        (steadyStatePanOffset + gesturePanOffset) * zoomScale
+    }
+    
+    private func panGesture() -> some Gesture {
+        DragGesture()
+            .updating($gesturePanOffset) { latestDragGestureValue, gesturePanOffset, _ in
+                gesturePanOffset = latestDragGestureValue.translation / zoomScale
+            }
+            .onEnded { finalDragGestureValue in
+                steadyStatePanOffset =  steadyStatePanOffset + (finalDragGestureValue.translation / zoomScale)
+            }
     }
     
     // MARK: - palette
