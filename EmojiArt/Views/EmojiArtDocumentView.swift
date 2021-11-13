@@ -33,9 +33,11 @@ struct EmojiArtDocumentView: View {
                 } else {
                     ForEach(document.emojis) { emoji in
                         Text(emoji.text)
+                            .selectionEffect(for: emoji, in: selectedEmojis)
                             .font(.system(size: fontSize(for: emoji)))
                             .scaleEffect(zoomScale)
                             .position(position(for: emoji, in: geometry))
+                            .gesture(selectionGesture(on: emoji))
                     }
                 }
             }
@@ -45,6 +47,20 @@ struct EmojiArtDocumentView: View {
             }
             .gesture(panGesture().simultaneously(with: zoomGesture()))
         }
+    }
+    
+    // MARK: - Select/Diselect
+    
+    
+    @State private var selectedEmojis = Set<EmojiArtModel.Emoji>()
+    
+    private func selectionGesture(on emoji: EmojiArtModel.Emoji) -> some Gesture {
+        TapGesture()
+            .onEnded {
+                selectedEmojis.toggleMembership(of: emoji)
+                print("selected")
+                print(selectedEmojis)
+            }
     }
     
     // MARK: - Drag and Drop
