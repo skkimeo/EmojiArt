@@ -25,7 +25,7 @@ struct EmojiArtDocumentView: View {
                 Color.white
                     .overlay(
                         OptionalImage(uiImage: document.backgroundImage)
-                            .scaleEffect(zoomScale)
+                            .scaleEffect(selectedEmojis.isEmpty ? zoomScale : steadyStateZoomScale)
                             .position(convertFromEmojiCoordinates((0, 0), in: geometry))
                     )
                     .gesture(doubleTapToZoom(in: geometry.size).exclusively(before: tapToUnselectAllEmojis()))
@@ -67,7 +67,9 @@ struct EmojiArtDocumentView: View {
     private func tapToUnselectAllEmojis() -> some Gesture {
         TapGesture()
             .onEnded {
-                selectedEmojis = []
+                withAnimation {
+                    selectedEmojis = []
+                }
             }
     }
     
