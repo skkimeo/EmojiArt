@@ -22,12 +22,13 @@ struct EmojiArtDocumentView: View {
     var documentBody: some View {
         GeometryReader { geometry in
             ZStack {
-                Color.white.overlay(
+                Color.white
+                    .overlay(
                         OptionalImage(uiImage: document.backgroundImage)
                             .scaleEffect(zoomScale)
                             .position(convertFromEmojiCoordinates((0, 0), in: geometry))
-                )
-                .gesture(doubleTapToZoom(in: geometry.size))
+                    )
+                    .gesture(doubleTapToZoom(in: geometry.size).exclusively(before: tapToUnselectAllEmojis()))
                 if document.backgroundImageFetchStatus == .fetching {
                     ProgressView().scaleEffect(2)
                 } else {
@@ -51,15 +52,22 @@ struct EmojiArtDocumentView: View {
     
     // MARK: - Select/Diselect
     
-    
+
     @State private var selectedEmojis = Set<EmojiArtModel.Emoji>()
     
     private func selectionGesture(on emoji: EmojiArtModel.Emoji) -> some Gesture {
         TapGesture()
             .onEnded {
-                selectedEmojis.toggleMembership(of: emoji)
-                print("selected")
-                print(selectedEmojis)
+                withAnimation {
+                    selectedEmojis.toggleMembership(of: emoji)
+                }
+            }
+    }
+    
+    private func tapToUnselectAllEmojis() -> some Gesture {
+        TapGesture()
+            .onEnded {
+                selectedEmojis = []
             }
     }
     
@@ -103,8 +111,8 @@ struct EmojiArtDocumentView: View {
     private func convertToEmojiCoordinates(_ location: CGPoint, in geometry: GeometryProxy) -> (Int, Int) {
         let center = geometry.frame(in: .local).center
         let location = (
-//            x: (location.x - center.x) / zoomScale - panOffset.width,
-//            y: (location.y - center.y) / zoomScale - panOffset.height
+            //            x: (location.x - center.x) / zoomScale - panOffset.width,
+            //            y: (location.y - center.y) / zoomScale - panOffset.height
             x: (location.x - center.x - panOffset.width) / zoomScale,
             y: (location.y - center.y - panOffset.height) / zoomScale
         )
@@ -115,8 +123,8 @@ struct EmojiArtDocumentView: View {
         let center = geometry.frame(in: .local).center
         
         return CGPoint(
-//            x: center.x + (CGFloat(location.x) + panOffset.width) * zoomScale,
-//            y: center.y + (CGFloat(location.y) + panOffset.height) * zoomScale
+            //            x: center.x + (CGFloat(location.x) + panOffset.width) * zoomScale,
+            //            y: center.y + (CGFloat(location.y) + panOffset.height) * zoomScale
             x: center.x + CGFloat(location.x) * zoomScale + panOffset.width,
             y: center.y + CGFloat(location.y) * zoomScale + panOffset.height
         )
@@ -140,7 +148,7 @@ struct EmojiArtDocumentView: View {
                 steadyStateZoomScale *= gestureScaleAtEnd
             }
     }
-
+    
     private func doubleTapToZoom(in size: CGSize) -> some Gesture {
         TapGesture(count: 2)
             .onEnded {
@@ -152,7 +160,7 @@ struct EmojiArtDocumentView: View {
     
     private func zoomToFit(image: UIImage?, in size: CGSize) {
         if let image = image, image.size.height > 0, image.size.width > 0,
-            size.width > 0, size.height > 0  {
+           size.width > 0, size.height > 0  {
             let hZoom = size.width / image.size.width
             let vZoom = size.height / image.size.height
             
@@ -167,7 +175,7 @@ struct EmojiArtDocumentView: View {
     @GestureState private var gesturePanOffset: CGSize = CGSize.zero
     
     private var panOffset: CGSize {
-//        (steadyStatePanOffset + gesturePanOffset)  // absolute version
+        //        (steadyStatePanOffset + gesturePanOffset)  // absolute version
         (steadyStatePanOffset + gesturePanOffset) * zoomScale
     }
     

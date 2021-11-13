@@ -13,7 +13,7 @@ struct SelectionEffect: ViewModifier {
     
     func body(content: Content) -> some View {
         content.overlay(
-            selectedEmojis.contains(emoji) ? RoundedRectangle(cornerRadius: 0).strokeBorder().foregroundColor(.blue) : nil)
+            selectedEmojis.contains(emoji) ? RoundedRectangle(cornerRadius: 0).strokeBorder(lineWidth: 1.2).foregroundColor(.blue) : nil)
     }
 }
 
