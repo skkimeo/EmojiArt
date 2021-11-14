@@ -34,11 +34,12 @@ struct EmojiArtDocumentView: View {
                 } else {
                     ForEach(document.emojis) { emoji in
                         Text(emoji.text)
-                            .selectionEffect(for: emoji, in: selectedEmojis)
                             .font(.system(size: fontSize(for: emoji)))
+                            .selectionEffect(for: emoji, in: selectedEmojis)
                             .scaleEffect(zoomScale)
                             .position(position(for: emoji, in: geometry))
-                            .gesture(selectionGesture(on: emoji))
+//                            .gesture(panEmojiGesture(on: emoji).exclusively(before: selectionGesture(on: emoji)))
+                            .gesture(selectionGesture(on: emoji).simultaneously(with: selectedEmojis.contains(emoji) ? panEmojiGesture(on: emoji) : nil))
                     }
                 }
             }
@@ -46,7 +47,7 @@ struct EmojiArtDocumentView: View {
             .onDrop(of: [.plainText, .url, .image], isTargeted: nil) { providers, location in
                 drop(providers: providers, at: location, in: geometry)
             }
-            .gesture(panGesture().simultaneously(with: zoomGesture()))
+            .gesture(zoomGesture().simultaneously(with: gestureEmojiPanOffset == CGSize.zero ? panGesture() : nil))
         }
     }
     
@@ -113,8 +114,6 @@ struct EmojiArtDocumentView: View {
     private func convertToEmojiCoordinates(_ location: CGPoint, in geometry: GeometryProxy) -> (Int, Int) {
         let center = geometry.frame(in: .local).center
         let location = (
-            //            x: (location.x - center.x) / zoomScale - panOffset.width,
-            //            y: (location.y - center.y) / zoomScale - panOffset.height
             x: (location.x - center.x - panOffset.width) / zoomScale,
             y: (location.y - center.y - panOffset.height) / zoomScale
         )
@@ -125,8 +124,6 @@ struct EmojiArtDocumentView: View {
         let center = geometry.frame(in: .local).center
         
         return CGPoint(
-            //            x: center.x + (CGFloat(location.x) + panOffset.width) * zoomScale,
-            //            y: center.y + (CGFloat(location.y) + panOffset.height) * zoomScale
             x: center.x + CGFloat(location.x) * zoomScale + panOffset.width,
             y: center.y + CGFloat(location.y) * zoomScale + panOffset.height
         )
@@ -147,7 +144,13 @@ struct EmojiArtDocumentView: View {
                 gestureZoomScale = latestGestureScale
             }
             .onEnded { gestureScaleAtEnd in
-                steadyStateZoomScale *= gestureScaleAtEnd
+                if selectedEmojis.isEmpty {
+                    steadyStateZoomScale *= gestureScaleAtEnd
+                } else {
+                    for emoji in selectedEmojis {
+                        document.scaleEmoji(emoji, by: gestureScaleAtEnd)
+                    }
+                }
             }
     }
     
@@ -188,6 +191,24 @@ struct EmojiArtDocumentView: View {
             }
             .onEnded { finalDragGestureValue in
                 steadyStatePanOffset =  steadyStatePanOffset + (finalDragGestureValue.translation / zoomScale)
+            }
+    }
+    
+    @GestureState var gestureEmojiPanOffset: CGSize = CGSize.zero
+//    private var previousDistance: CGSize = CGSize.zero
+    
+    private func panEmojiGesture(on emoji: EmojiArtModel.Emoji) -> some Gesture {
+        DragGesture()
+            .updating($gestureEmojiPanOffset) { latestDragGestureValue, gestureEmojiPanOffset, _ in
+                for emoji in selectedEmojis {
+                    document.moveEmoji(emoji, by: (latestDragGestureValue.distance - gestureEmojiPanOffset) / zoomScale)
+                }
+                gestureEmojiPanOffset = latestDragGestureValue.distance
+            }
+            .onEnded { finalDragGestureValue in
+                for emoji in selectedEmojis {
+                    document.moveEmoji(emoji, by: finalDragGestureValue.distance)
+                }
             }
     }
     
