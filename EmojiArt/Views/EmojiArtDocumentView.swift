@@ -33,15 +33,28 @@ struct EmojiArtDocumentView: View {
                     ProgressView().scaleEffect(2)
                 } else {
                     ForEach(document.emojis) { emoji in
-                        Text(emoji.text)
-                            .font(.system(size: fontSize(for: emoji)))
-//                            .selectionEffect(for: emoji, in: selectedEmojis)
-                            .overlay(
-                                selectedEmojis.contains(emoji) ? RoundedRectangle(cornerRadius: 0).strokeBorder(lineWidth: 1.2).foregroundColor(.blue) : nil)
-
-                            .scaleEffect(selectedEmojis.isEmpty ? zoomScale : selectedEmojis.contains(emoji) ? zoomScale : steadyStateZoomScale)
-                            .position(position(for: emoji, in: geometry))
-                            .gesture(selectionGesture(on: emoji).simultaneously(with: selectedEmojis.contains(emoji) ? panEmojiGesture(on: emoji) : nil))
+                        if #available(iOS 15.0, *) {
+                            Text(emoji.text)
+                                .font(.system(size: fontSize(for: emoji)))
+                            //                            .selectionEffect(for: emoji, in: selectedEmojis)
+                                .overlay(
+                                    selectedEmojis.contains(emoji) ? RoundedRectangle(cornerRadius: 0).strokeBorder(lineWidth: 1.2).foregroundColor(.blue) : nil)
+                            
+                                .scaleEffect(selectedEmojis.isEmpty ? zoomScale : selectedEmojis.contains(emoji) ? zoomScale : steadyStateZoomScale)
+                                .position(position(for: emoji, in: geometry))
+                                .gesture(longPressToDelete(on: emoji).simultaneously(with: selectionGesture(on: emoji).simultaneously(with: selectedEmojis.contains(emoji) ? panEmojiGesture(on: emoji) : nil)))
+                                .alert(Text("Delete?"), isPresented: $showDeleteAlert) {
+                                    Button(role: .destructive) {
+                                        withAnimation {
+                                            document.removeEmoji(emoji)
+                                        }
+                                    } label: {
+                                        Text("Yes")
+                                    }
+                                }
+                        } else {
+                            // Fallback on earlier versions
+                        }
                     }
                 }
             }
@@ -53,8 +66,18 @@ struct EmojiArtDocumentView: View {
         }
     }
     
-    // MARK: - Select/Diselect
+    // MARK: - Delete Emojis
     
+    @State private var showDeleteAlert = false
+    
+    private func longPressToDelete(on emoji: EmojiArtModel.Emoji) -> some Gesture {
+        LongPressGesture(minimumDuration: 1.2)
+            .onEnded { LongPressStateAtEnd in
+                LongPressStateAtEnd ? showDeleteAlert.toggle() : nil
+            }
+    }
+    
+    // MARK: - Select/Diselect
 
     @State private var selectedEmojis = Set<EmojiArtModel.Emoji>()
     
