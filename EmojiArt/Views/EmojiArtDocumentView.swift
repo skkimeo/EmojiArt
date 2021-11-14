@@ -36,21 +36,12 @@ struct EmojiArtDocumentView: View {
                         if #available(iOS 15.0, *) {
                             Text(emoji.text)
                                 .font(.system(size: fontSize(for: emoji)))
-                            //                            .selectionEffect(for: emoji, in: selectedEmojis)
-                                .overlay(
-                                    selectedEmojis.contains(emoji) ? RoundedRectangle(cornerRadius: 0).strokeBorder(lineWidth: 1.2).foregroundColor(.blue) : nil)
-                            
-                                .scaleEffect(selectedEmojis.isEmpty ? zoomScale : selectedEmojis.contains(emoji) ? zoomScale : steadyStateZoomScale)
+                                .selectionEffect(for: emoji, in: selectedEmojis)
+                                .scaleEffect(getZoomScaleForEmoji(emoji))
                                 .position(position(for: emoji, in: geometry))
-                                .gesture(longPressToDelete(on: emoji).simultaneously(with: selectionGesture(on: emoji).simultaneously(with: selectedEmojis.contains(emoji) ? panEmojiGesture(on: emoji) : nil)))
-                                .alert(Text("Delete?"), isPresented: $showDeleteAlert) {
-                                    Button(role: .destructive) {
-                                        withAnimation {
-                                            document.removeEmoji(emoji)
-                                        }
-                                    } label: {
-                                        Text("Yes")
-                                    }
+                                .gesture(selectionGesture(on: emoji).simultaneously(with: longPressToDelete(on: emoji).simultaneously(with: selectedEmojis.contains(emoji) ? panEmojiGesture(on: emoji) : nil)))
+                                .alert("Delete", isPresented: $showDeleteAlert, presenting: EmojiArtModel.Emoji.self) { _ in
+                                    deleteEmojiOnDemand(for: deleteEmoji!)
                                 }
                         } else {
                             // Fallback on earlier versions
@@ -64,42 +55,6 @@ struct EmojiArtDocumentView: View {
             }
             .gesture(zoomGesture().simultaneously(with: gestureEmojiPanOffset == CGSize.zero ? panGesture() : nil))
         }
-    }
-    
-    // MARK: - Delete Emojis
-    
-    @State private var showDeleteAlert = false
-    
-    private func longPressToDelete(on emoji: EmojiArtModel.Emoji) -> some Gesture {
-        LongPressGesture(minimumDuration: 1.2)
-            .onEnded { LongPressStateAtEnd in
-                LongPressStateAtEnd ? showDeleteAlert.toggle() : nil
-            }
-    }
-    
-    // MARK: - Select/Diselect
-
-    @State private var selectedEmojis = Set<EmojiArtModel.Emoji>()
-    
-    private func selectionGesture(on emoji: EmojiArtModel.Emoji) -> some Gesture {
-        TapGesture()
-            .onEnded {
-                withAnimation {
-                    selectedEmojis.toggleMembership(of: emoji)
-                    
-                }
-                print(selectedEmojis)
-            }
-    }
-    
-    private func tapToUnselectAllEmojis() -> some Gesture {
-        TapGesture()
-            .onEnded {
-                withAnimation {
-                    selectedEmojis = []
-                }
-                print(selectedEmojis)
-            }
     }
     
     // MARK: - Drag and Drop
@@ -125,7 +80,6 @@ struct EmojiArtDocumentView: View {
                 }
             }
         }
-        
         return found
     }
     
@@ -151,7 +105,7 @@ struct EmojiArtDocumentView: View {
         )
         return (Int(location.x), Int(location.y))
     }
-
+    
     private func convertFromEmojiCoordinates(_ location: (x: Int, y: Int), in geometry: GeometryProxy) -> CGPoint {
         let center = geometry.frame(in: .local).center
         
@@ -160,7 +114,7 @@ struct EmojiArtDocumentView: View {
             y: center.y + CGFloat(location.y) * zoomScale + panOffset.height
         )
     }
-
+    
     // MARK: - Zooming
     
     @State private var steadyStateZoomScale: CGFloat = 1
@@ -168,6 +122,10 @@ struct EmojiArtDocumentView: View {
     
     private var zoomScale: CGFloat {
         steadyStateZoomScale * gestureZoomScale
+    }
+    
+    private func getZoomScaleForEmoji(_ emoji: EmojiArtModel.Emoji) -> CGFloat {
+        selectedEmojis.isEmpty ? zoomScale : selectedEmojis.contains(emoji) ? zoomScale : steadyStateZoomScale
     }
     
     private func zoomGesture() -> some Gesture {
@@ -182,6 +140,7 @@ struct EmojiArtDocumentView: View {
                     for emoji in selectedEmojis {
                         document.scaleEmoji(emoji, by: gestureScaleAtEnd)
                     }
+//                    selectedEmojis = []
                 }
                 print(selectedEmojis)
             }
@@ -211,9 +170,9 @@ struct EmojiArtDocumentView: View {
     
     @State private var steadyStatePanOffset: CGSize = CGSize.zero
     @GestureState private var gesturePanOffset: CGSize = CGSize.zero
+    @GestureState private var gestureEmojiPanOffset: CGSize = CGSize.zero
     
     private var panOffset: CGSize {
-        //        (steadyStatePanOffset + gesturePanOffset)  // absolute version
         (steadyStatePanOffset + gesturePanOffset) * zoomScale
     }
     
@@ -227,8 +186,6 @@ struct EmojiArtDocumentView: View {
             }
     }
     
-    @GestureState var gestureEmojiPanOffset: CGSize = CGSize.zero
-    
     private func panEmojiGesture(on emoji: EmojiArtModel.Emoji) -> some Gesture {
         DragGesture()
             .updating($gestureEmojiPanOffset) { latestDragGestureValue, gestureEmojiPanOffset, _ in
@@ -238,10 +195,64 @@ struct EmojiArtDocumentView: View {
                 for emoji in selectedEmojis {
                     document.moveEmoji(emoji, by: finalDragGestureValue.distance / zoomScale)
                 }
-                print(finalDragGestureValue.startLocation)
+//                selectedEmojis = []
+                print("*****************")
                 print(selectedEmojis)
+                print(document.emojis)
+                // becomes different because the new emoji at the end
+                // is new and thus not in selected emojis because it's diff place
                 print("ITS NOT ENDING")
             }
+    }
+    
+    // MARK: - Selecting/Unselecting Emojis
+    
+    @State private var selectedEmojis = Set<EmojiArtModel.Emoji>()
+    
+    private func selectionGesture(on emoji: EmojiArtModel.Emoji) -> some Gesture {
+        TapGesture()
+            .onEnded {
+                withAnimation {
+                    selectedEmojis.toggleMembership(of: emoji)
+                    
+                }
+                print(selectedEmojis)
+            }
+    }
+    
+    private func tapToUnselectAllEmojis() -> some Gesture {
+        TapGesture()
+            .onEnded {
+                withAnimation {
+                    selectedEmojis = []
+                }
+                print(selectedEmojis)
+            }
+    }
+    
+    // MARK: - Deleting Emojis
+    
+    @State private var showDeleteAlert = false
+    @State private var deleteEmoji: EmojiArtModel.Emoji?
+    
+    private func longPressToDelete(on emoji: EmojiArtModel.Emoji) -> some Gesture {
+        LongPressGesture(minimumDuration: 1.2)
+            .onEnded { LongPressStateAtEnd in
+                deleteEmoji = emoji
+                LongPressStateAtEnd ? showDeleteAlert.toggle() : nil
+            }
+    }
+    
+    @available(iOS 15.0, *)
+    private func deleteEmojiOnDemand(for emoji: EmojiArtModel.Emoji) -> some View {
+        Button(role: .destructive) {
+            if selectedEmojis.contains(emoji) {
+                selectedEmojis.toggleMembership(of: emoji)
+            }
+            document.removeEmoji(emoji)
+        } label: {
+            Text("Yes")
+        }
     }
     
     // MARK: - palette

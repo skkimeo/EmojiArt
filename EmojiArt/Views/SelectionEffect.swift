@@ -12,8 +12,10 @@ struct SelectionEffect: ViewModifier {
     var selectedEmojis: Set<EmojiArtModel.Emoji>
     
     func body(content: Content) -> some View {
-        content.overlay(
-            selectedEmojis.contains(emoji) ? RoundedRectangle(cornerRadius: 0).strokeBorder(lineWidth: 1.2).foregroundColor(.blue) : nil)
+        content
+            .overlay(
+                selectedEmojis.contains(emoji) ? RoundedRectangle(cornerRadius: 0).strokeBorder(lineWidth: 1.2).foregroundColor(.blue) : nil
+            )
     }
 }
 
