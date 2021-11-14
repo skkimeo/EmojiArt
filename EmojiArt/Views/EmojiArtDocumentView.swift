@@ -26,7 +26,7 @@ struct EmojiArtDocumentView: View {
                     .overlay(
                         OptionalImage(uiImage: document.backgroundImage)
                             .scaleEffect(selectedEmojis.isEmpty ? zoomScale : steadyStateZoomScale)
-                            .position(convertFromEmojiCoordinatesForBackground((0, 0), in: geometry))
+                            .position(convertFromEmojiCoordinates((0, 0), in: geometry))
                     )
                     .gesture(doubleTapToZoom(in: geometry.size).exclusively(before: tapToUnselectAllEmojis()))
                 if document.backgroundImageFetchStatus == .fetching {
@@ -41,7 +41,6 @@ struct EmojiArtDocumentView: View {
 
                             .scaleEffect(selectedEmojis.isEmpty ? zoomScale : selectedEmojis.contains(emoji) ? zoomScale : steadyStateZoomScale)
                             .position(position(for: emoji, in: geometry))
-//                            .gesture(panEmojiGesture(on: emoji).exclusively(before: selectionGesture(on: emoji)))
                             .gesture(selectionGesture(on: emoji).simultaneously(with: selectedEmojis.contains(emoji) ? panEmojiGesture(on: emoji) : nil))
                     }
                 }
@@ -114,28 +113,23 @@ struct EmojiArtDocumentView: View {
     }
     
     private func position(for emoji: EmojiArtModel.Emoji, in geometry: GeometryProxy) -> CGPoint {
-        convertFromEmojiCoordinates((emoji.x, emoji.y), in: geometry)
+        if selectedEmojis.contains(emoji) {
+            return convertFromEmojiCoordinates((emoji.x + Int(gestureEmojiPanOffset.width), emoji.y + Int(gestureEmojiPanOffset.height)), in: geometry)
+        } else {
+            return convertFromEmojiCoordinates((emoji.x, emoji.y), in: geometry)
+        }
     }
     
     private func convertToEmojiCoordinates(_ location: CGPoint, in geometry: GeometryProxy) -> (Int, Int) {
         let center = geometry.frame(in: .local).center
         let location = (
-            x: (location.x - center.x - panOffset.width - gestureEmojiPanOffset.width) / zoomScale,
-            y: (location.y - center.y - panOffset.height - gestureEmojiPanOffset.height) / zoomScale
+            x: (location.x - center.x - panOffset.width) / zoomScale,
+            y: (location.y - center.y - panOffset.height) / zoomScale
         )
         return (Int(location.x), Int(location.y))
     }
 
     private func convertFromEmojiCoordinates(_ location: (x: Int, y: Int), in geometry: GeometryProxy) -> CGPoint {
-        let center = geometry.frame(in: .local).center
-        
-        return CGPoint(
-            x: center.x + CGFloat(location.x) * zoomScale + panOffset.width + gestureEmojiPanOffset.width,
-            y: center.y + CGFloat(location.y) * zoomScale + panOffset.height + gestureEmojiPanOffset.height
-        )
-    }
-    
-    private func convertFromEmojiCoordinatesForBackground(_ location: (x: Int, y: Int), in geometry: GeometryProxy) -> CGPoint {
         let center = geometry.frame(in: .local).center
         
         return CGPoint(
@@ -211,16 +205,11 @@ struct EmojiArtDocumentView: View {
     }
     
     @GestureState var gestureEmojiPanOffset: CGSize = CGSize.zero
-//    private var previousDistance: CGSize = CGSize.zero
     
     private func panEmojiGesture(on emoji: EmojiArtModel.Emoji) -> some Gesture {
         DragGesture()
             .updating($gestureEmojiPanOffset) { latestDragGestureValue, gestureEmojiPanOffset, _ in
-//                for emoji in selectedEmojis {
-//                    document.moveEmoji(emoji, by: (latestDragGestureValue.distance / zoomScale))
-//                    print(latestDragGestureValue.startLocation)
-//                }
-                gestureEmojiPanOffset = latestDragGestureValue.distance
+                gestureEmojiPanOffset = latestDragGestureValue.distance / zoomScale
             }
             .onEnded { finalDragGestureValue in
                 for emoji in selectedEmojis {
