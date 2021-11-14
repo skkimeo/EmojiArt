@@ -69,6 +69,16 @@ extension Set where Element: Identifiable {
     }
 }
 
+extension Set where Element == Int {
+    mutating func toggleMembership(of element: Element) {
+        if self.contains(element) {
+            remove(element)
+        } else {
+            insert(element)
+        }
+    }
+}
+
 extension Character {
     var isEmoji: Bool {
         // Swift does not have a way to ask if a Character isEmoji

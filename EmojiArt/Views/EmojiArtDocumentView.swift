@@ -140,9 +140,7 @@ struct EmojiArtDocumentView: View {
                     for emoji in selectedEmojis {
                         document.scaleEmoji(emoji, by: gestureScaleAtEnd)
                     }
-//                    selectedEmojis = []
                 }
-                print(selectedEmojis)
             }
     }
     
@@ -195,28 +193,27 @@ struct EmojiArtDocumentView: View {
                 for emoji in selectedEmojis {
                     document.moveEmoji(emoji, by: finalDragGestureValue.distance / zoomScale)
                 }
-//                selectedEmojis = []
-                print("*****************")
-                print(selectedEmojis)
-                print(document.emojis)
-                // becomes different because the new emoji at the end
-                // is new and thus not in selected emojis because it's diff place
-                print("ITS NOT ENDING")
             }
     }
     
     // MARK: - Selecting/Unselecting Emojis
     
-    @State private var selectedEmojis = Set<EmojiArtModel.Emoji>()
+    @State private var selectedEmojisId = Set<Int>()
+    
+    private var selectedEmojis: Set<EmojiArtModel.Emoji> {
+        var selectedEmojis = Set<EmojiArtModel.Emoji>()
+        for id in selectedEmojisId {
+            selectedEmojis.insert(document.emojis.first(where: {$0.id == id})!)
+        }
+        return selectedEmojis
+    }
     
     private func selectionGesture(on emoji: EmojiArtModel.Emoji) -> some Gesture {
         TapGesture()
             .onEnded {
                 withAnimation {
-                    selectedEmojis.toggleMembership(of: emoji)
-                    
+                    selectedEmojisId.toggleMembership(of: emoji.id)
                 }
-                print(selectedEmojis)
             }
     }
     
@@ -224,9 +221,8 @@ struct EmojiArtDocumentView: View {
         TapGesture()
             .onEnded {
                 withAnimation {
-                    selectedEmojis = []
+                    selectedEmojisId = []
                 }
-                print(selectedEmojis)
             }
     }
     
@@ -246,13 +242,9 @@ struct EmojiArtDocumentView: View {
     @available(iOS 15.0, *)
     private func deleteEmojiOnDemand(for emoji: EmojiArtModel.Emoji) -> some View {
         Button(role: .destructive) {
-            if selectedEmojis.contains(emoji) {
-                selectedEmojis.toggleMembership(of: emoji)
-            }
+            if selectedEmojis.contains(emoji) { selectedEmojisId.remove(emoji.id) }
             document.removeEmoji(emoji)
-        } label: {
-            Text("Yes")
-        }
+        } label: { Text("Yes") }
     }
     
     // MARK: - palette
