@@ -21,39 +21,41 @@ struct EmojiArtDocumentView: View {
     
     var documentBody: some View {
         GeometryReader { geometry in
-            ZStack {
-                Color.white
-                    .overlay(
-                        OptionalImage(uiImage: document.backgroundImage)
-                            .scaleEffect(selectedEmojis.isEmpty ? zoomScale : steadyStateZoomScale)
-                            .position(convertFromEmojiCoordinates((0, 0), in: geometry))
-                    )
-                    .gesture(doubleTapToZoom(in: geometry.size).exclusively(before: tapToUnselectAllEmojis()))
-                if document.backgroundImageFetchStatus == .fetching {
-                    ProgressView().scaleEffect(2)
-                } else {
-                    ForEach(document.emojis) { emoji in
-                        if #available(iOS 15.0, *) {
+            if #available(iOS 15.0, *) {
+                ZStack {
+                    Color.white
+                        .overlay(
+                            OptionalImage(uiImage: document.backgroundImage)
+                                .scaleEffect(selectedEmojis.isEmpty ? zoomScale : steadyStateZoomScale)
+                                .position(convertFromEmojiCoordinates((0, 0), in: geometry))
+                        )
+                        .gesture(doubleTapToZoom(in: geometry.size).exclusively(before: tapToUnselectAllEmojis()))
+                    if document.backgroundImageFetchStatus == .fetching {
+                        ProgressView().scaleEffect(2)
+                    } else {
+                        ForEach(document.emojis) { emoji in
+                            //                        if #available(iOS 15.0, *) {
                             Text(emoji.text)
                                 .font(.system(size: fontSize(for: emoji)))
                                 .selectionEffect(for: emoji, in: selectedEmojis)
                                 .scaleEffect(getZoomScaleForEmoji(emoji))
                                 .position(position(for: emoji, in: geometry))
                                 .gesture(selectionGesture(on: emoji).simultaneously(with: longPressToDelete(on: emoji).simultaneously(with: selectedEmojis.contains(emoji) ? panEmojiGesture(on: emoji) : nil)))
-                                .alert("Delete", isPresented: $showDeleteAlert, presenting: EmojiArtModel.Emoji.self) { _ in
-                                    deleteEmojiOnDemand(for: deleteEmoji!)
-                                }
-                        } else {
-                            // Fallback on earlier versions
                         }
                     }
                 }
+                .clipped()
+                .onDrop(of: [.plainText, .url, .image], isTargeted: nil) { providers, location in
+                    drop(providers: providers, at: location, in: geometry)
+                }
+                .gesture(zoomGesture().simultaneously(with: gestureEmojiPanOffset == CGSize.zero ? panGesture() : nil))
+                .alert("Delete", isPresented: $showDeleteAlert, presenting: deleteEmoji) { deleteEmoji in
+                        deleteEmojiOnDemand(for: deleteEmoji)
+                }
+                
+            } else {
+                // Fallback on earlier versions
             }
-            .clipped()
-            .onDrop(of: [.plainText, .url, .image], isTargeted: nil) { providers, location in
-                drop(providers: providers, at: location, in: geometry)
-            }
-            .gesture(zoomGesture().simultaneously(with: gestureEmojiPanOffset == CGSize.zero ? panGesture() : nil))
         }
     }
     
@@ -227,15 +229,19 @@ struct EmojiArtDocumentView: View {
     }
     
     // MARK: - Deleting Emojis
-    
+
     @State private var showDeleteAlert = false
     @State private var deleteEmoji: EmojiArtModel.Emoji?
     
     private func longPressToDelete(on emoji: EmojiArtModel.Emoji) -> some Gesture {
         LongPressGesture(minimumDuration: 1.2)
             .onEnded { LongPressStateAtEnd in
-                deleteEmoji = emoji
-                LongPressStateAtEnd ? showDeleteAlert.toggle() : nil
+                if LongPressStateAtEnd {
+                    deleteEmoji = emoji
+                    showDeleteAlert.toggle()
+                } else {
+                    deleteEmoji = nil
+                }
             }
     }
     
