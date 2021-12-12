@@ -2,7 +2,7 @@
 //  EmojiArtApp.swift
 //  EmojiArt
 //
-//  Created by sun on 2021/11/09.
+//  Created by sun on 2021/12/12.
 //
 
 import SwiftUI
